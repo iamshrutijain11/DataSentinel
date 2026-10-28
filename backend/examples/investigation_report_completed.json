@@ -1,0 +1,277 @@
+{
+  "investigation_id": "inv-demo-exfil-01",
+  "alert_id": "alert-101",
+  "status": "COMPLETED",
+  "title": "Suspicious High-Volume Outbound Data Transfer",
+  "severity": "high",
+  "executive_summary": "The investigation examined the anomalous outbound traffic spike and concluded it corresponds to an authorized nightly database synchronization routine, though bandwidth limits exceeded baseline expectations.",
+  "timeline": [
+    {
+      "timestamp": "2026-10-27T22:00:00Z",
+      "event_id": "auditd-session-1029",
+      "description": "PAM authentication session opened for service account 'svc_backup_agent' via cron scheduler.",
+      "source": "linux_auditd",
+      "evidence_ref": "EV-AUTH-101-3"
+    },
+    {
+      "timestamp": "2026-10-27T22:01:15Z",
+      "event_id": "auditd-exec-9018",
+      "description": "Execution of rclone sync process initiated to secure offsite vault.",
+      "source": "linux_auditd",
+      "evidence_ref": "EV-PROC-101-4"
+    },
+    {
+      "timestamp": "2026-10-27T22:03:55Z",
+      "event_id": "zeek-dns-44211",
+      "description": "DNS lookup for backup-vault-us-east.storage-sync.net resolved to 198.51.100.44.",
+      "source": "zeek_dns",
+      "evidence_ref": "EV-DNS-101-2"
+    },
+    {
+      "timestamp": "2026-10-27T22:04:10Z",
+      "event_id": "zeek-conn-88129",
+      "description": "Outbound 542 MB TLS session initiated to 198.51.100.44 over port 443.",
+      "source": "zeek_conn",
+      "evidence_ref": "EV-NET-101-1"
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "hypothesis": "Authorized Scheduled Synchronization",
+      "explanation": "Offsite archival backup initiated by authorized service account.",
+      "status": "SUPPORTED",
+      "supporting_evidence_ids": [
+        "EV-AUTH-101-3",
+        "EV-PROC-101-4",
+        "EV-CONFIG-101-5",
+        "EV-DNS-101-2"
+      ],
+      "contradicting_evidence_ids": [],
+      "reasoning": "Matches scheduled cron timing and valid change request CR-7719."
+    },
+    {
+      "id": "H2",
+      "hypothesis": "Unauthorized Data Exfiltration",
+      "explanation": "Exfiltration of financial assets by malicious insider or external threat actor.",
+      "status": "REFUTED",
+      "supporting_evidence_ids": [
+        "EV-NET-101-1"
+      ],
+      "contradicting_evidence_ids": [
+        "EV-AUTH-101-3",
+        "EV-PROC-101-4",
+        "EV-CONFIG-101-5"
+      ],
+      "reasoning": "Process lineage and service account credentials indicate legitimate job execution."
+    }
+  ],
+  "key_findings": [
+    {
+      "id": "F1",
+      "finding": "High outbound volumetric transfer of 542 MB was observed on TCP port 443.",
+      "evidence_ids": [
+        "EV-NET-101-1"
+      ],
+      "timestamps": [
+        "2026-10-27T22:04:10Z"
+      ],
+      "significance": "Anomalous volume exceeding 5-sigma baseline."
+    },
+    {
+      "id": "F2",
+      "finding": "Activity originated from legitimate service account svc_backup_agent executing rclone.",
+      "evidence_ids": [
+        "EV-AUTH-101-3",
+        "EV-PROC-101-4"
+      ],
+      "timestamps": [
+        "2026-10-27T22:00:00Z",
+        "2026-10-27T22:01:15Z"
+      ],
+      "significance": "Validates authorized software and identity context."
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-NET-101-1",
+      "event_id": "zeek-conn-88129",
+      "timestamp": "2026-10-27T22:04:10Z",
+      "data_source": "zeek_conn",
+      "summary": "Outbound TCP session 10.0.4.15:48192 -> 198.51.100.44:443. Duration: 412s. Sent: 542 MB, Recv: 12 KB. State: SF (Normal termination).",
+      "raw_details": {
+        "src_ip": "10.0.4.15",
+        "dst_ip": "198.51.100.44",
+        "dst_port": 443,
+        "protocol": "tcp",
+        "bytes_out": 542000000,
+        "bytes_in": 12400,
+        "conn_state": "SF"
+      }
+    },
+    {
+      "evidence_id": "EV-DNS-101-2",
+      "event_id": "zeek-dns-44211",
+      "timestamp": "2026-10-27T22:03:55Z",
+      "data_source": "zeek_dns",
+      "summary": "DNS query for 'backup-vault-us-east.storage-sync.net' from 10.0.4.15 resolved to 198.51.100.44 (TTL: 300).",
+      "raw_details": {
+        "query": "backup-vault-us-east.storage-sync.net",
+        "qtype": "A",
+        "answers": [
+          "198.51.100.44"
+        ],
+        "rcode": "NOERROR"
+      }
+    },
+    {
+      "evidence_id": "EV-AUTH-101-3",
+      "event_id": "auditd-session-1029",
+      "timestamp": "2026-10-27T22:00:00Z",
+      "data_source": "linux_auditd",
+      "summary": "PAM authentication session opened for service account 'svc_backup_agent' via local cron scheduler.",
+      "raw_details": {
+        "host": "srv-finance-01",
+        "user": "svc_backup_agent",
+        "pam_service": "cron",
+        "tty": null
+      }
+    },
+    {
+      "evidence_id": "EV-PROC-101-4",
+      "event_id": "auditd-exec-9018",
+      "timestamp": "2026-10-27T22:01:15Z",
+      "data_source": "linux_auditd",
+      "summary": "Process execution: '/usr/bin/rclone sync /data/finance-archives backup-vault:encrypted-sync --bwlimit 25M' PID: 4912 under UID 1004 (svc_backup_agent).",
+      "raw_details": {
+        "pid": 4912,
+        "ppid": 1024,
+        "exe": "/usr/bin/rclone",
+        "cmdline": "rclone sync /data/finance-archives backup-vault:encrypted-sync --bwlimit 25M"
+      }
+    },
+    {
+      "evidence_id": "EV-CONFIG-101-5",
+      "event_id": "config-cron-file-01",
+      "timestamp": "2026-10-20T10:00:00Z",
+      "data_source": "host_inventory",
+      "summary": "Registered scheduled cron job '/etc/cron.d/finance-nightly-sync' configured to trigger daily at 22:00 UTC.",
+      "raw_details": {
+        "cron_entry": "0 22 * * * svc_backup_agent /usr/local/bin/nightly_sync.sh",
+        "owner": "root",
+        "approved_cr": "CR-7719"
+      }
+    }
+  ],
+  "uncertainty": [
+    "Full packet capture payload analysis was unavailable due to end-to-end TLS encryption.",
+    "Cloud storage provider access logs at destination IP 198.51.100.44 were not directly queried."
+  ],
+  "confidence": {
+    "level": "HIGH",
+    "type": "heuristic_qualitative",
+    "rationale": "Strong corroborating auditd and cron evidence confirms authorized scheduled synchronization despite unusual volume spike."
+  },
+  "recommendations": [
+    {
+      "action": "Review host activity and verify nightly backup schedule parameters",
+      "priority": "MEDIUM",
+      "category": "VALIDATE",
+      "justification": "Confirm whether recent data volume increase was anticipated or requires updated bandwidth caps.",
+      "requires_human_authorization": false
+    },
+    {
+      "action": "Inspect relevant DNS records and storage endpoint configuration",
+      "priority": "LOW",
+      "category": "INVESTIGATE",
+      "justification": "Ensure 198.51.100.44 remains on the approved cloud storage IP allowlist.",
+      "requires_human_authorization": false
+    },
+    {
+      "action": "Isolate host after human authorization",
+      "priority": "LOW",
+      "category": "ISOLATE_WITH_APPROVAL",
+      "justification": "Contingency only: not currently recommended as activity is assessed as benign authorized backup.",
+      "requires_human_authorization": true
+    }
+  ],
+  "model_metadata": {
+    "provider": "mock_nemotron",
+    "model_id": "nvidia/llama-3.1-nemotron-70b-instruct",
+    "latency_ms": 42.5,
+    "tokens_prompt": 380,
+    "tokens_completion": 512,
+    "tokens_total": 892,
+    "real_call_succeeded": false,
+    "timestamp": "2026-10-28T05:08:41.188040+00:00"
+  },
+  "tool_execution_trace": [
+    {
+      "tool_name": "get_alert_details",
+      "arguments": {
+        "alert_id": "alert-101"
+      },
+      "executed_at": "2026-10-28T05:08:41.178793+00:00",
+      "duration_ms": 2.49,
+      "status": "SUCCESS",
+      "records_returned": 1,
+      "summary": "Alert details for alert-101 retrieved: Suspicious High-Volume Outbound Data Transfer"
+    },
+    {
+      "tool_name": "get_alert_evidence",
+      "arguments": {
+        "alert_id": "alert-101"
+      },
+      "executed_at": "2026-10-28T05:08:41.181345+00:00",
+      "duration_ms": 0.09,
+      "status": "SUCCESS",
+      "records_returned": 5,
+      "summary": "Retrieved 5 evidence records for alert alert-101"
+    },
+    {
+      "tool_name": "get_host_activity",
+      "arguments": {
+        "identifier": "srv-finance-01"
+      },
+      "executed_at": "2026-10-28T05:08:41.183654+00:00",
+      "duration_ms": 0.17,
+      "status": "SUCCESS",
+      "records_returned": 1,
+      "summary": "Retrieved 1 activity records for host/IP 'srv-finance-01'"
+    },
+    {
+      "tool_name": "get_traffic_statistics",
+      "arguments": {},
+      "executed_at": "2026-10-28T05:08:41.183863+00:00",
+      "duration_ms": 0.03,
+      "status": "SUCCESS",
+      "records_returned": 8,
+      "summary": "Traffic statistics calculated: Peak 542000000 bytes, sigma 6.8"
+    },
+    {
+      "tool_name": "get_host_activity",
+      "arguments": {
+        "identifier": "source_host",
+        "alert_id": "alert-101"
+      },
+      "executed_at": "2026-10-28T05:08:41.183902+00:00",
+      "duration_ms": 0.06,
+      "status": "SUCCESS",
+      "records_returned": 0,
+      "summary": "Retrieved 0 activity records for host/IP 'source_host'"
+    },
+    {
+      "tool_name": "get_traffic_statistics",
+      "arguments": {
+        "alert_id": "alert-101"
+      },
+      "executed_at": "2026-10-28T05:08:41.183969+00:00",
+      "duration_ms": 0.02,
+      "status": "SUCCESS",
+      "records_returned": 8,
+      "summary": "Traffic statistics calculated: Peak 542000000 bytes, sigma 6.8"
+    }
+  ],
+  "created_at": "2026-10-28T05:08:41.174212+00:00",
+  "completed_at": "2026-10-28T05:08:41.188040+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "total_alerts": 3,
+  "active_investigations": 0,
+  "completed_investigations": 2,
+  "failed_investigations": 0,
+  "model_provider": "nebius",
+  "model_name": "nvidia/llama-3.1-nemotron-70b-instruct",
+  "real_nebius_connected": true,
+  "average_investigation_latency_ms": 1150.4
+}
