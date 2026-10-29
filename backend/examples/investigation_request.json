@@ -1,0 +1,8 @@
+{
+  "alert_id": "alert-101",
+  "parameters": {
+    "max_steps": 5,
+    "confidence_threshold": "MEDIUM",
+    "prioritize_speed": false
+  }
+}

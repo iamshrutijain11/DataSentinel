@@ -1,0 +1,7 @@
+{
+  "investigation_id": "8c01df42-45a8-4bb9-9ff7-56e6d1a938c4",
+  "alert_id": "alert-101",
+  "status": "QUEUED",
+  "created_at": "2026-10-28T05:00:00.000000Z",
+  "message": "Investigation successfully queued. Poll /api/v1/investigations/{investigation_id} for progress."
+}

@@ -1,0 +1,22 @@
+{
+  "id": "alert-101",
+  "title": "Suspicious High-Volume Outbound Data Transfer",
+  "severity": "high",
+  "status": "OPEN",
+  "description": "Anomalous spike in egress connection bytes detected to an unclassified external IP (198.51.100.44) over port 443.",
+  "source": "pyspark_anomaly_detector",
+  "dataset_id": "dataset-netflow-2026",
+  "host_identifier": "srv-finance-01 (10.0.4.15)",
+  "anomaly_score": 0.94,
+  "timestamp": "2026-10-27T22:15:00Z",
+  "evidence_count": 12,
+  "metadata": {
+    "dest_ip": "198.51.100.44",
+    "dest_port": 443,
+    "src_ip": "10.0.4.15",
+    "bytes_transferred": 542000000,
+    "baseline_mean_bytes": 1200000,
+    "sigma_deviation": 6.8
+  },
+  "created_at": "2026-10-28T05:00:00Z"
+}
