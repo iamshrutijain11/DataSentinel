@@ -3,12 +3,12 @@
 > **Nebius × NVIDIA Global AI Hackathon** — Module 3: Enterprise Dashboard, UX & Deployment
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-iamshrutijain11%2FDataSentinel-181717?logo=github)](https://github.com/iamshrutijain11/DataSentinel)
-[![Production Deployment](https://img.shields.io/badge/Vercel-Live%20Dashboard-000000?logo=vercel)](https://datasentinel-dashboard-52xlhe2gh-2k24cs1o2411627-1320.vercel.app)
+[![Production Deployment](https://img.shields.io/badge/Vercel-Live%20Dashboard-000000?logo=vercel)](https://frontend-six-tau-11.vercel.app)
 [![OpenAPI Spec](https://img.shields.io/badge/OpenAPI-3.1.0-6BA539?logo=openapi-initiative)](contracts/openapi.yaml)
 [![Inference](https://img.shields.io/badge/Inference-NVIDIA%20Nemotron--70B%20on%20Nebius-76B900?logo=nvidia)](https://nebius.ai)
 
-**Live Demo URL**: [https://datasentinel-dashboard-52xlhe2gh-2k24cs1o2411627-1320.vercel.app](https://datasentinel-dashboard-52xlhe2gh-2k24cs1o2411627-1320.vercel.app)
-**Repository**: [https://github.com/iamshrutijain11/DataSentinel](https://github.com/iamshrutijain11/DataSentinel)
+**Live Production URL**: [https://frontend-six-tau-11.vercel.app](https://frontend-six-tau-11.vercel.app)
+**GitHub Repository**: [https://github.com/iamshrutijain11/DataSentinel](https://github.com/iamshrutijain11/DataSentinel)
 
 DataSentinel 2.0 is an enterprise-grade AI-powered Security Operations Center (SOC) dashboard built to analyze millions of network flow records, surface high-fidelity anomaly detections, and launch autonomous investigation agents powered by **NVIDIA Nemotron-70B** on **Nebius Cloud**.
 
