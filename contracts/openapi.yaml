@@ -1,0 +1,677 @@
+openapi: 3.1.0
+info:
+  title: DataSentinel 2.0 API
+  description: >
+    Autonomous AI-powered Security Operations Center API for large-scale network telemetry,
+    big-data threat detection, and Nemotron-70B investigation agents on Nebius Cloud.
+  version: 2.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local Development Server
+  - url: https://api.datasentinel.ai
+    description: Production Nebius Gateway
+
+paths:
+  /api/v1/health:
+    get:
+      summary: System health & inference cluster status
+      description: Returns health status of backend, ingestion pipeline, and Nebius H100 inference service.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Health telemetry returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /api/v1/metrics/overview:
+    get:
+      summary: Security Operations Overview Metrics
+      description: Returns cluster aggregate statistics, throughput, alert trends, and top threat sources.
+      operationId: getOverviewMetrics
+      responses:
+        '200':
+          description: High-level SOC telemetry metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverviewMetrics'
+
+  /api/v1/datasets:
+    get:
+      summary: List all registered security datasets
+      description: Returns all ingested or validating NetFlow, PCAP, and JSON event datasets.
+      operationId: getDatasets
+      responses:
+        '200':
+          description: List of datasets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dataset'
+
+  /api/v1/datasets/upload:
+    post:
+      summary: Upload a security dataset
+      description: Uploads a PCAP, CSV, or JSON telemetry file for schema validation and stream ingestion.
+      operationId: uploadDataset
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File stream (.pcap, .csv, .json, .log)
+      responses:
+        '200':
+          description: Dataset uploaded and queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          description: Invalid file format or schema validation error
+
+  /api/v1/datasets/{id}:
+    get:
+      summary: Get dataset metadata & field mappings
+      description: Returns specific dataset statistics, field schema mappings, and validation results.
+      operationId: getDatasetById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dataset metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+        '404':
+          description: Dataset not found
+
+  /api/v1/alerts:
+    get:
+      summary: Paginated security alerts
+      description: Filterable and paginated stream of detected threats and network anomalies.
+      operationId: getAlerts
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: severities
+          in: query
+          description: Comma-separated severities (CRITICAL,HIGH,MEDIUM,LOW,INFO)
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, INVESTIGATING, RESOLVED, FALSE_POSITIVE]
+        - name: detection_type
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated alerts response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertsPage'
+
+  /api/v1/alerts/{id}:
+    get:
+      summary: Get alert details & evidence
+      description: Returns full alert metadata, forensic evidence records, and raw network payloads.
+      operationId: getAlertById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detailed alert entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '404':
+          description: Alert not found
+
+  /api/v1/investigations:
+    post:
+      summary: Launch autonomous AI investigation
+      description: Initiates a Nemotron-70B agent loop against a specified alert.
+      operationId: createInvestigation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - alert_id
+              properties:
+                alert_id:
+                  type: string
+                model_id:
+                  type: string
+                  default: nvidia/llama-3.1-nemotron-70b-instruct
+      responses:
+        '200':
+          description: Investigation created and queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Investigation'
+
+  /api/v1/investigations/{id}:
+    get:
+      summary: Get investigation status, timeline & findings
+      description: Polls the active status, reasoning trace steps, evidence correlations, and MITRE findings.
+      operationId: getInvestigationById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Investigation details with execution trace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Investigation'
+        '404':
+          description: Investigation not found
+
+  /api/v1/benchmarks:
+    get:
+      summary: ML & throughput performance benchmarks
+      description: Returns benchmark evaluations on CIC-IDS, UNSW-NB15, token throughput, and comparative latencies.
+      operationId: getBenchmarks
+      responses:
+        '200':
+          description: Benchmark evaluation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Benchmarks'
+
+  /api/v1/network/activity:
+    get:
+      summary: Network telemetry analytics
+      description: Returns aggregated bandwidth over time, protocol distribution, host pairs, and suspicious windows.
+      operationId: getNetworkActivity
+      responses:
+        '200':
+          description: Network telemetry payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkActivity'
+
+components:
+  schemas:
+    Severity:
+      type: string
+      enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+
+    AlertStatus:
+      type: string
+      enum: [OPEN, INVESTIGATING, RESOLVED, FALSE_POSITIVE]
+
+    DatasetStatus:
+      type: string
+      enum: [UPLOADING, VALIDATING, PROCESSING, READY, FAILED]
+
+    InvestigationStatus:
+      type: string
+      enum:
+        - QUEUED
+        - PLANNING
+        - EVIDENCE_COLLECTION
+        - HYPOTHESIS_TESTING
+        - REPORT_GENERATION
+        - COMPLETED
+        - FAILED
+
+    ServiceStatus:
+      type: object
+      required:
+        - status
+        - latency_ms
+        - uptime_percent
+        - last_check
+      properties:
+        status:
+          type: string
+          enum: [up, down, degraded]
+        latency_ms:
+          type: number
+        uptime_percent:
+          type: number
+        last_check:
+          type: string
+          format: date-time
+        version:
+          type: string
+
+    HealthStatus:
+      type: object
+      required:
+        - status
+        - backend
+        - pipeline
+        - nebius_inference
+        - model_id
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        backend:
+          $ref: '#/components/schemas/ServiceStatus'
+        pipeline:
+          $ref: '#/components/schemas/ServiceStatus'
+        nebius_inference:
+          $ref: '#/components/schemas/ServiceStatus'
+        model_id:
+          type: string
+        last_job_completed_at:
+          type: string
+          nullable: true
+        recent_errors:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              timestamp:
+                type: string
+              service:
+                type: string
+              message:
+                type: string
+              severity:
+                type: string
+                enum: [warn, error, critical]
+
+    OverviewMetrics:
+      type: object
+      required:
+        - total_events
+        - total_alerts
+        - critical_alerts
+        - high_alerts
+        - datasets_analyzed
+        - throughput_eps
+        - active_investigations
+      properties:
+        total_events:
+          type: integer
+        total_alerts:
+          type: integer
+        critical_alerts:
+          type: integer
+        high_alerts:
+          type: integer
+        datasets_analyzed:
+          type: integer
+        throughput_eps:
+          type: number
+        active_investigations:
+          type: integer
+        alert_trends:
+          type: array
+          items:
+            type: object
+        severity_distribution:
+          type: array
+          items:
+            type: object
+        top_sources:
+          type: array
+          items:
+            type: object
+        recent_investigations:
+          type: array
+          items:
+            type: object
+
+    Dataset:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - file_size_bytes
+        - uploaded_at
+        - field_mappings
+        - validation_errors
+        - source_type
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/DatasetStatus'
+        row_count:
+          type: integer
+          nullable: true
+        file_size_bytes:
+          type: integer
+        uploaded_at:
+          type: string
+          format: date-time
+        processed_at:
+          type: string
+          format: date-time
+          nullable: true
+        field_mappings:
+          type: object
+          additionalProperties:
+            type: string
+        validation_errors:
+          type: array
+          items:
+            type: string
+        source_type:
+          type: string
+
+    UploadResponse:
+      type: object
+      required:
+        - dataset_id
+        - message
+        - status
+        - filename
+      properties:
+        dataset_id:
+          type: string
+        message:
+          type: string
+        status:
+          $ref: '#/components/schemas/DatasetStatus'
+        filename:
+          type: string
+
+    Evidence:
+      type: object
+      required:
+        - id
+        - timestamp
+        - type
+        - detail
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        type:
+          type: string
+        detail:
+          type: string
+        raw_payload:
+          type: string
+        metadata:
+          type: object
+
+    Alert:
+      type: object
+      required:
+        - id
+        - timestamp
+        - severity
+        - detection_type
+        - source_ip
+        - destination_ip
+        - source_port
+        - destination_port
+        - protocol
+        - risk_score
+        - status
+        - description
+        - evidence
+        - dataset_id
+        - alert_count
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        severity:
+          $ref: '#/components/schemas/Severity'
+        detection_type:
+          type: string
+        source_ip:
+          type: string
+        destination_ip:
+          type: string
+        source_port:
+          type: integer
+        destination_port:
+          type: integer
+        protocol:
+          type: string
+        risk_score:
+          type: integer
+        status:
+          $ref: '#/components/schemas/AlertStatus'
+        description:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evidence'
+        dataset_id:
+          type: string
+        alert_count:
+          type: integer
+
+    AlertsPage:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+        - total_pages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
+
+    InvestigationStep:
+      type: object
+      required:
+        - step_number
+        - phase
+        - tool_name
+        - input_query
+        - output_summary
+        - status
+        - execution_time_ms
+        - reasoning
+      properties:
+        step_number:
+          type: integer
+        phase:
+          type: string
+        tool_name:
+          type: string
+        input_query:
+          type: string
+        output_summary:
+          type: string
+        status:
+          type: string
+          enum: [running, completed, failed]
+        execution_time_ms:
+          type: number
+        reasoning:
+          type: string
+
+    Finding:
+      type: object
+      required:
+        - id
+        - title
+        - severity
+        - description
+        - confidence
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        severity:
+          $ref: '#/components/schemas/Severity'
+        description:
+          type: string
+        confidence:
+          type: number
+        mitre_technique:
+          type: string
+
+    Investigation:
+      type: object
+      required:
+        - id
+        - alert_id
+        - status
+        - created_at
+        - updated_at
+        - model_id
+        - steps
+        - findings
+        - recommendations
+      properties:
+        id:
+          type: string
+        alert_id:
+          type: string
+        status:
+          $ref: '#/components/schemas/InvestigationStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        model_id:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvestigationStep'
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+        recommendations:
+          type: array
+          items:
+            type: string
+        confidence_score:
+          type: number
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+        report_url:
+          type: string
+          nullable: true
+
+    Benchmarks:
+      type: object
+      required:
+        - summary
+        - ml_metrics
+        - throughput_curve
+        - models_compared
+      properties:
+        summary:
+          type: object
+        ml_metrics:
+          type: array
+          items:
+            type: object
+        throughput_curve:
+          type: array
+          items:
+            type: object
+        models_compared:
+          type: array
+          items:
+            type: object
+
+    NetworkActivity:
+      type: object
+      required:
+        - traffic_history
+        - protocol_distribution
+        - top_hosts
+        - suspicious_windows
+        - destination_map
+      properties:
+        traffic_history:
+          type: array
+          items:
+            type: object
+        protocol_distribution:
+          type: array
+          items:
+            type: object
+        top_hosts:
+          type: array
+          items:
+            type: object
+        suspicious_windows:
+          type: array
+          items:
+            type: object
+        destination_map:
+          type: array
+          items:
+            type: object

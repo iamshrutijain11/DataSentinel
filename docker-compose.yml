@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Next.js Enterprise Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: datasentinel-frontend
+    ports:
+      - '3000:3000'
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_USE_MOCKS=false
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - datasentinel-network
+
+  # FastAPI Backend (Person 2 & 1)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: datasentinel-backend
+    ports:
+      - '8000:8000'
+    environment:
+      - NEBIUS_API_KEY=${NEBIUS_API_KEY}
+      - NEBIUS_INFERENCE_URL=https://api.tokenfactory.nebius.ai/v1
+      - NEMOTRON_MODEL_ID=nvidia/llama-3.1-nemotron-70b-instruct
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+    restart: unless-stopped
+    networks:
+      - datasentinel-network
+
+networks:
+  datasentinel-network:
+    driver: bridge
